@@ -1240,6 +1240,24 @@ pub fn raise_hand(
     Ok(())
 }
 
+pub fn encrypt_fhe<'a>(
+    env: &mut JNIEnv<'a>,
+    call_manager: *mut AndroidCallManager,
+    client_id: group_call::ClientId,
+    pcm_data: jni::sys::jfloatArray,
+) -> Result<JByteArray<'a>> {
+    let call_manager = unsafe { ptr_as_mut(call_manager)? };
+
+    let pcm_data_array = unsafe { jni::objects::JFloatArray::from_raw(pcm_data) };
+    let len = env.get_array_length(&pcm_data_array)?;
+    let mut buf = vec![0.0f32; len as usize];
+    env.get_float_array_region(&pcm_data_array, 0, &mut buf)?;
+
+    let result = call_manager.encrypt_fhe(client_id, buf)?;
+
+    env.byte_array_from_slice(&result).map_err(Into::into)
+}
+
 fn jint_to_restrictions(raw_restrictions: jint) -> Option<CallLinkRestrictions> {
     match raw_restrictions {
         0 => Some(CallLinkRestrictions::None),

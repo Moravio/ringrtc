@@ -1465,6 +1465,11 @@ impl Client {
         });
     }
 
+    pub fn encrypt_fhe(&self, _pcm_data: Vec<f32>) -> Result<Vec<u8>> {
+        // Stub implementation
+        Ok(Vec::new())
+    }
+
     // Pulled into a named private method so we can call it recursively.
     fn tick(state: &mut State) {
         let now = Instant::now();

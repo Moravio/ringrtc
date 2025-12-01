@@ -3248,6 +3248,21 @@ where
             }
         }
     }
+
+    pub fn encrypt_fhe(
+        &mut self,
+        client_id: group_call::ClientId,
+        pcm_data: Vec<f32>,
+    ) -> Result<Vec<u8>> {
+        info!("encrypt_fhe(): id: {}", client_id);
+
+        let group_call_map = self.group_call_by_client_id.lock()?;
+        if let Some(group_call) = group_call_map.get(&client_id) {
+            group_call.client.encrypt_fhe(pcm_data)
+        } else {
+            Err(anyhow::anyhow!("Group Client not found for id: {}", client_id))
+        }
+    }
 }
 
 #[cfg(test)]

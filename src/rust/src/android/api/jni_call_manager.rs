@@ -1297,6 +1297,29 @@ pub unsafe extern "C" fn Java_org_signal_ringrtc_GroupCall_ringrtcRaiseHand(
 
 #[unsafe(no_mangle)]
 #[allow(non_snake_case)]
+pub unsafe extern "C" fn Java_org_signal_ringrtc_GroupCall_ringrtcEncryptFhe(
+    mut env: JNIEnv,
+    _object: JObject,
+    call_manager: jlong,
+    client_id: jlong,
+    pcm_data: jni::sys::jfloatArray,
+) -> jni::sys::jbyteArray {
+    match call_manager::encrypt_fhe(
+        &mut env,
+        call_manager as *mut AndroidCallManager,
+        client_id as group_call::ClientId,
+        pcm_data,
+    ) {
+        Ok(v) => v.into_raw(),
+        Err(e) => {
+            error::throw_error(&mut env, e);
+            JObject::null().into_raw()
+        }
+    }
+}
+
+#[unsafe(no_mangle)]
+#[allow(non_snake_case)]
 pub unsafe extern "C" fn Java_org_signal_ringrtc_CallId_ringrtcFromEraId(
     mut env: JNIEnv,
     _class: JClass,

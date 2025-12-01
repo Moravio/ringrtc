@@ -679,6 +679,19 @@ public final class GroupCall {
 
     /**
      *
+     * Encrypts the provided float array using FHE and returns the byte array.
+     *
+     * @param pcmData  The float array (PCM data) to encrypt
+     * @return         The encrypted byte array
+     * @throws CallException for native code failures
+     */
+    public byte[] encryptFhe(@NonNull float[] pcmData) throws CallException {
+        Log.i(TAG, "encryptFhe():");
+        return ringrtcEncryptFhe(nativeCallManager, this.clientId, pcmData);
+    }
+
+    /**
+     *
      * Callback from RingRTC when the group call object needs an updated
      * membership proof. Called via the CallManager.
      *
@@ -1504,5 +1517,11 @@ public final class GroupCall {
         void ringrtcRaiseHand(long nativeCallManager,
                               long clientId,
                               boolean raise)
+        throws CallException;
+
+    private native
+        byte[] ringrtcEncryptFhe(long nativeCallManager,
+                                 long clientId,
+                                 float[] pcmData)
         throws CallException;
 }
