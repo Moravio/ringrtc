@@ -2701,6 +2701,7 @@ dependencies = [
  "bytes",
  "chrono",
  "clap",
+ "cmake",
  "ctr",
  "cubeb",
  "cubeb-core",

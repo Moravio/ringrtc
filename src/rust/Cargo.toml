@@ -139,3 +139,6 @@ uuid = { version = "1.18.0" }
 env_logger = { version = "0.11.8" }
 rand_chacha = { version = "0.3.1" }
 libsignal-core = { git = "https://github.com/signalapp/libsignal", tag = "v0.78.3" }
+
+[build-dependencies]
+cmake = "0.1"

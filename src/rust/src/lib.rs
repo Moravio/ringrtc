@@ -50,6 +50,9 @@ pub mod core {
 /// Protobuf Definitions.
 pub mod protobuf;
 
+/// FHE (Fully Homomorphic Encryption) functionality.
+pub mod fhe;
+
 #[cfg(any(target_os = "android", feature = "check-all"))]
 /// Android specific implementation.
 mod android {

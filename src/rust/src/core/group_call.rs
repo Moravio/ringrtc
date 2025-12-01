@@ -74,6 +74,9 @@ use crate::{
         },
         stats_observer::{StatsObserver, create_stats_observer},
     },
+    fhe::{
+        ffi::add,
+    },
 };
 
 // Each instance of a group_call::Client has an ID for logging and passing events
@@ -1466,7 +1469,8 @@ impl Client {
     }
 
     pub fn encrypt_fhe(&self, _pcm_data: Vec<f32>) -> Result<Vec<u8>> {
-        // Stub implementation
+        let result = add(1, 2);
+        eprintln!("result = {}", result);
         Ok(Vec::new())
     }
 

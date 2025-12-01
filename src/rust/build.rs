@@ -9,6 +9,8 @@ use std::{
     fs,
     process::Command,
 };
+use cmake;
+
 
 // corresponds to PROJECT_DIR in bin/env.sh
 fn project_dir() -> String {
@@ -59,6 +61,10 @@ fn main() {
     if cfg!(feature = "prebuilt_webrtc") && cfg!(feature = "prebuilt_webrtc_sim") {
         panic!("Cannot enable both prebuilt_webrtc and prebuilt_webrtc_sim features");
     }
+
+    let fhe_dir = format!("{}/fhe", project_dir());
+
+    println!("cargo:rerun-if-changed={}", fhe_dir);
 
     if cfg!(feature = "native") {
         let webrtc_dir =
@@ -115,7 +121,32 @@ fn main() {
             println!("cargo:rustc-link-lib=stdc++");
         }
     } else if target_os == "android" {
-        // Rely on the compile invocation to provide the right search path.
+        let android_abi = match target_arch.as_str() {
+            "aarch64" => "arm64-v8a",
+            "arm" => "armeabi-v7a",
+            "x86" => "x86",
+            "x86_64" => "x86_64",
+            _ => panic!("Unsupported Android architecture: {}", target_arch),
+        };
+
+        let ndk = std::env::var("ANDROID_NDK_HOME")
+            .expect("ANDROID_NDK_HOME must be set for Android builds");
+
+        let fhe_out_dir = format!("{}/fhe/{}", out_dir, build_type);
+
+        let dst = cmake::Config::new(&fhe_dir)
+            .define("CMAKE_TOOLCHAIN_FILE", format!("{}/build/cmake/android.toolchain.cmake", ndk))
+            .define("ANDROID_NDK", &ndk)
+            .define("ANDROID_ABI", android_abi)
+            .define("ANDROID_PLATFORM", "android-21")
+            .out_dir(&fhe_out_dir)
+            .build();
+
+        
+        println!("cargo:rustc-link-search=native={}/lib", dst.display());
+        println!("cargo:rustc-link-lib=static=fhe");
+
+        // Rely on the compile invocation to provide the right search path for ringrtc_rffi.
         println!("cargo:rustc-link-lib=ringrtc_rffi");
     }
 }
