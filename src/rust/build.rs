@@ -142,9 +142,17 @@ fn main() {
             .out_dir(&fhe_out_dir)
             .build();
 
-        
         println!("cargo:rustc-link-search=native={}/lib", dst.display());
         println!("cargo:rustc-link-lib=static=fhe");
+
+        // Link OpenFHE shared libraries and their dependencies
+        let openfhe_libs_dir = format!("{}/lib/{}", fhe_dir, android_abi);
+        println!("cargo:rustc-link-search=native={}", openfhe_libs_dir);
+        println!("cargo:rustc-link-lib=OPENFHEbinfhe");
+        println!("cargo:rustc-link-lib=OPENFHEpke");
+        println!("cargo:rustc-link-lib=OPENFHEcore");
+        println!("cargo:rustc-link-lib=omp");
+        println!("cargo:rustc-link-lib=c++_shared");
 
         // Rely on the compile invocation to provide the right search path for ringrtc_rffi.
         println!("cargo:rustc-link-lib=ringrtc_rffi");

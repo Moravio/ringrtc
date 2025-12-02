@@ -36,6 +36,13 @@ JAR_FILES = [
 ]
 WEBRTC_SO_LIBS = ['libringrtc_rffi.so']
 SO_LIBS = WEBRTC_SO_LIBS + ['libringrtc.so']
+FHE_LIBS = [
+    'libc++_shared.so',
+    'libomp.so',
+    'libOPENFHEbinfhe.so',
+    'libOPENFHEcore.so',
+    'libOPENFHEpke.so',
+]
 # Android NDK used in webrtc/src/third_party/android_toolchain/README.chromium
 NDK_REVISION = '28.0.13004108'
 
@@ -440,6 +447,17 @@ def CreateLibs(dry_run, project_dir, webrtc_src_dir, build_dir, archs, output,
             shutil.copyfile(os.path.join(output_arch_dir, lib_file),
                             os.path.join(target_dir,
                                          os.path.basename(lib)))
+
+        # Copy FHE libs
+        fhe_lib_dir = os.path.join(project_dir, 'fhe', 'lib', GetABI(arch))
+        if os.path.isdir(fhe_lib_dir):
+            target_dir = os.path.join(output_dir, GetABI(arch))
+            os.makedirs(target_dir, exist_ok=True)
+            for lib in FHE_LIBS:
+                src = os.path.join(fhe_lib_dir, lib)
+                if os.path.exists(src):
+                    logging.debug('  Adding FHE lib: {} to {}...'.format(lib, target_dir))
+                    shutil.copyfile(src, os.path.join(target_dir, lib))
 
 
 def CollectAarAssets(dry_run, project_dir, build_dir):
