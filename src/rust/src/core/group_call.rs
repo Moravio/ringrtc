@@ -75,7 +75,7 @@ use crate::{
         stats_observer::{StatsObserver, create_stats_observer},
     },
     fhe::{
-        ffi::add,
+        ffi::create_crypto_context,
     },
 };
 
@@ -1469,8 +1469,8 @@ impl Client {
     }
 
     pub fn encrypt_fhe(&self, _pcm_data: Vec<f32>) -> Result<Vec<u8>> {
-        let result = add(1, 2);
-        eprintln!("result = {}", result);
+        create_crypto_context();
+        // eprintln!("result = {}", result);
         Ok(Vec::new())
     }
 
