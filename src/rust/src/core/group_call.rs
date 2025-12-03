@@ -76,6 +76,7 @@ use crate::{
     },
     fhe::{
         ffi::create_crypto_context,
+        ffi::encrypt,
     },
 };
 
@@ -1468,10 +1469,13 @@ impl Client {
         });
     }
 
-    pub fn encrypt_fhe(&self, _pcm_data: Vec<f32>) -> Result<Vec<u8>> {
+    pub fn encrypt_fhe(&self, pcm_data: Vec<f32>) -> Result<Vec<u8>> {
+        info!("encrypting data of size {}", pcm_data.len());
         create_crypto_context();
         // eprintln!("result = {}", result);
-        Ok(Vec::new())
+
+        let result = encrypt(&pcm_data);
+        Ok(result)
     }
 
     // Pulled into a named private method so we can call it recursively.

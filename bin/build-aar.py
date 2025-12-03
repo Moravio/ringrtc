@@ -458,6 +458,10 @@ def CreateLibs(dry_run, project_dir, webrtc_src_dir, build_dir, archs, output,
                 if os.path.exists(src):
                     logging.debug('  Adding FHE lib: {} to {}...'.format(lib, target_dir))
                     shutil.copyfile(src, os.path.join(target_dir, lib))
+            shutil.copyfile(
+                os.path.join(build_dir, 'fhe', 'release', 'lib', 'libFHE_Rust.so'),
+                os.path.join(target_dir, 'libFHE_Rust.so')
+            )
 
 
 def CollectAarAssets(dry_run, project_dir, build_dir):

@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.22.1)
-project(FHE LANGUAGES CXX)
+project("FHE_Rust")
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_library(fhe STATIC
-    fhe.cpp
+add_library(${CMAKE_PROJECT_NAME} SHARED
+    fhe_rust.cpp
 )
 
 set(OPENFHE_LIBS_DIR "${CMAKE_SOURCE_DIR}/lib/${ANDROID_ABI}")
@@ -24,7 +24,8 @@ set_target_properties(openfhe-binfhe PROPERTIES
     IMPORTED_LOCATION "${OPENFHE_LIBS_DIR}/libOPENFHEbinfhe.so"
 )
 
-target_include_directories(fhe PRIVATE
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
+    ${CMAKE_SOURCE_DIR}/keys
     ${CMAKE_SOURCE_DIR}/include/openfhe
     ${CMAKE_SOURCE_DIR}/include/openfhe/binfhe
     ${CMAKE_SOURCE_DIR}/include/openfhe/cereal
@@ -32,14 +33,15 @@ target_include_directories(fhe PRIVATE
     ${CMAKE_SOURCE_DIR}/include/openfhe/pke
 )
 
-target_link_libraries(fhe
+target_link_libraries(${CMAKE_PROJECT_NAME}
     PRIVATE
+        log
         openfhe-binfhe
         openfhe-core
         openfhe-pke
 )
 
-install(TARGETS fhe
+install(TARGETS ${CMAKE_PROJECT_NAME}
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib
     RUNTIME DESTINATION bin

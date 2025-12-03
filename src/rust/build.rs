@@ -58,13 +58,12 @@ fn main() {
     // Explicitly state that by depending on build.rs itself, as recommended.
     println!("cargo:rerun-if-changed=build.rs");
 
+    let fhe_dir = format!("{}/fhe", project_dir());
+    println!("cargo:rerun-if-changed={}", fhe_dir);
+
     if cfg!(feature = "prebuilt_webrtc") && cfg!(feature = "prebuilt_webrtc_sim") {
         panic!("Cannot enable both prebuilt_webrtc and prebuilt_webrtc_sim features");
     }
-
-    let fhe_dir = format!("{}/fhe", project_dir());
-
-    println!("cargo:rerun-if-changed={}", fhe_dir);
 
     if cfg!(feature = "native") {
         let webrtc_dir =
@@ -143,16 +142,7 @@ fn main() {
             .build();
 
         println!("cargo:rustc-link-search=native={}/lib", dst.display());
-        println!("cargo:rustc-link-lib=static=fhe");
-
-        // Link OpenFHE shared libraries and their dependencies
-        let openfhe_libs_dir = format!("{}/lib/{}", fhe_dir, android_abi);
-        println!("cargo:rustc-link-search=native={}", openfhe_libs_dir);
-        println!("cargo:rustc-link-lib=OPENFHEbinfhe");
-        println!("cargo:rustc-link-lib=OPENFHEpke");
-        println!("cargo:rustc-link-lib=OPENFHEcore");
-        println!("cargo:rustc-link-lib=omp");
-        println!("cargo:rustc-link-lib=c++_shared");
+        println!("cargo:rustc-link-lib=FHE_Rust");
 
         // Rely on the compile invocation to provide the right search path for ringrtc_rffi.
         println!("cargo:rustc-link-lib=ringrtc_rffi");

@@ -10,7 +10,7 @@ pub struct FloatBuffer {
     pub len: usize,
 }
 
-#[link(name = "fhe", kind = "static")]
+#[link(name = "FHE_Rust")]
 unsafe extern "C" {
     fn createCryptoContext();
 
@@ -29,13 +29,19 @@ pub fn create_crypto_context() {
 }
 
 pub fn encrypt(input: &[f32]) -> Vec<u8> {
+    info!("encrypting data of size {}", input.len());
     unsafe {
         let buf = _encrypt(input.as_ptr(), input.len());
         if buf.ptr.is_null() || buf.len == 0 {
+            info!("failed to encrypt data");
+
             return Vec::new();
         }
         let slice = std::slice::from_raw_parts(buf.ptr, buf.len);
         let out = slice.to_vec();
+
+        info!("encrypted data of size {}", out.len());
+
         freeByteBuffer(buf.ptr, buf.len);
         out
     }

@@ -13,9 +13,18 @@
 #include <key/key-ser.h>
 #include <scheme/bfvrns/bfvrns-ser.h>
 
-lbcrypto::CryptoContext<lbcrypto::DCRTPoly> cryptoContext = nullptr;
-lbcrypto::PrivateKey<lbcrypto::DCRTPoly> secretKey;
-lbcrypto::PublicKey<lbcrypto::DCRTPoly> publicKey;
+// xxd -i key_priv.bin > key_priv.h 
+#include "key_priv.h"
+// xxd -i key_pub.bin > key_pub.h
+#include "key_pub.h"
+
+#include <android/log.h>
+
+#define LOG_TAG "FHERustNativeModule"
+
+static lbcrypto::CryptoContext<lbcrypto::DCRTPoly> cryptoContext = nullptr;
+static lbcrypto::PrivateKey<lbcrypto::DCRTPoly> secretKey;
+static lbcrypto::PublicKey<lbcrypto::DCRTPoly> publicKey;
 
 std::vector<float> convertToFloat(const std::vector<double>& doubleVec) {
     std::vector<float> floatVec;
@@ -46,6 +55,12 @@ struct FloatBuffer {
 };
 
 void createCryptoContext() {
+    __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "initialize new crypto context and keys");
+
+    cryptoContext->ClearEvalMultKeys();
+    cryptoContext->ClearEvalAutomorphismKeys();
+    lbcrypto::CryptoContextFactory<lbcrypto::DCRTPoly>::ReleaseAllContexts();
+
     lbcrypto::CCParams<lbcrypto::CryptoContextCKKSRNS> parameters;
     parameters.SetMultiplicativeDepth(0);
     parameters.SetSecurityLevel(lbcrypto::HEStd_128_quantum);
@@ -63,31 +78,54 @@ void createCryptoContext() {
     cryptoContext->Enable(lbcrypto::KEYSWITCH);
     cryptoContext->Enable(lbcrypto::LEVELEDSHE);
 
-    lbcrypto::KeyPair<lbcrypto::DCRTPoly> kp = cryptoContext->KeyGen();
-    publicKey = kp.publicKey;
-    secretKey = kp.secretKey;
+    // lbcrypto::KeyPair<lbcrypto::DCRTPoly> kp = cryptoContext->KeyGen();
+    // publicKey = kp.publicKey;
+    // secretKey = kp.secretKey;
+
+    // std::string cryptoContextStr(reinterpret_cast<const char*>(crypto_context_bin), crypto_context_bin_len);
+    // std::istringstream cryptoContextIss(cryptoContextStr);
+    // lbcrypto::Serial::Deserialize(cryptoContext, cryptoContextIss, lbcrypto::SerType::BINARY);
+
+    std::string pubKeyStr(reinterpret_cast<const char*>(key_pub_bin), key_pub_bin_len);
+    std::istringstream pubKeyIss(pubKeyStr);
+    lbcrypto::Serial::Deserialize(publicKey, pubKeyIss, lbcrypto::SerType::BINARY);
+
+    std::string privKeyStr(reinterpret_cast<const char*>(key_priv_bin), key_priv_bin_len);
+    std::istringstream privKeyIss(privKeyStr);
+    lbcrypto::Serial::Deserialize(secretKey, privKeyIss, lbcrypto::SerType::BINARY);
+
+    __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "Keys loaded");
 }
 
 ByteBuffer encrypt(const float* inputData, size_t len) {
-    std::vector<float> inputVec(inputData, inputData + len);
-    
-    lbcrypto::Plaintext plaintext = cryptoContext->MakeCKKSPackedPlaintext(convertToDouble(inputVec));
+    __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "encrypting data of size %zu", len);
 
-    auto ciphertext = cryptoContext->Encrypt(publicKey, plaintext);
+    try {
+        std::vector<float> inputVec(inputData, inputData + len);
+        
+        lbcrypto::Plaintext plaintext = cryptoContext->MakeCKKSPackedPlaintext(convertToDouble(inputVec));
 
-    std::ostringstream oss;
-    lbcrypto::Serial::Serialize(ciphertext, oss, lbcrypto::SerType::BINARY);
-    std::string s = oss.str();
+        auto ciphertext = cryptoContext->Encrypt(publicKey, plaintext);
 
-    ByteBuffer out;
-    out.len = s.size();
-    out.ptr = static_cast<uint8_t*>(std::malloc(out.len));
-    if (!out.ptr) {
-        out.len = 0;
+        std::ostringstream oss;
+        lbcrypto::Serial::Serialize(ciphertext, oss, lbcrypto::SerType::BINARY);
+        std::string s = oss.str();
+
+        ByteBuffer out;
+        out.len = s.size();
+        out.ptr = static_cast<uint8_t*>(std::malloc(out.len));
+        if (!out.ptr) {
+            out.len = 0;
+            return out;
+        }
+        std::memcpy(out.ptr, s.data(), out.len);
+        
         return out;
+    } catch (const std::exception& e) {
+        __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, "Exception during encryption: %s", e.what());
+        
+        throw;
     }
-    std::memcpy(out.ptr, s.data(), out.len);
-    return out;
 }
 
 FloatBuffer decrypt(const uint8_t* encryptedData, size_t len) {
