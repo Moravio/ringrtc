@@ -73,7 +73,7 @@ use crate::{
             SessionDescription, SrtpCryptoSuite, SrtpKey, create_csd_observer, create_ssd_observer,
         },
         stats_observer::{StatsObserver, create_stats_observer},
-    }
+    },
 };
 
 // Each instance of a group_call::Client has an ID for logging and passing events

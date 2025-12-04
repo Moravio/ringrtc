@@ -67,11 +67,9 @@ struct SenderState {
 
 impl SenderState {
     fn new(ratchet_counter: RatchetCounter, secret: Secret) -> Self {
-        let (pub_key, priv_key) = generate_fhe_keys();
-
         let mut result = Self {
-            current_fhe_pub_key: pub_key,
-            current_fhe_priv_key: priv_key,
+            current_fhe_pub_key: vec![],
+            current_fhe_priv_key: vec![],
             current_aes_key: [0u8; size_of::<AesKey>()],
             current_hmac_key: [0u8; size_of::<HmacKey>()],
             current_secret: secret,
@@ -79,6 +77,7 @@ impl SenderState {
         };
         result.derive_aes_key();
         result.derive_hmac_key();
+        result.derive_fhe_keys();
         result
     }
 
@@ -119,6 +118,13 @@ impl SenderState {
                     std::mem::size_of::<HmacKey>()
                 )
             });
+    }
+
+    fn derive_fhe_keys(&mut self) {
+        let (pub_key, priv_key) = generate_fhe_keys(&self.current_secret);
+        
+        self.current_fhe_pub_key = pub_key;
+        self.current_fhe_priv_key = priv_key;
     }
 }
 

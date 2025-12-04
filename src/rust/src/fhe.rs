@@ -19,7 +19,7 @@ pub struct KeyPair {
 #[link(name = "ringrtc_fhe")]
 unsafe extern "C" {
     fn createCryptoContext();
-    fn generateKeys() -> KeyPair;
+    fn generateKeys(secret_ptr: *const u8, len: usize) -> KeyPair;
 
     #[link_name = "encrypt"]
     fn _encrypt(
@@ -42,11 +42,11 @@ unsafe extern "C" {
     fn freeKeyPair(keys: KeyPair);
 }
 
-pub fn generate_keys() -> (Vec<u8>, Vec<u8>) {
+pub fn generate_keys(#[allow(unused)] current_secret: &[u8; 32]) -> (Vec<u8>, Vec<u8>) {
     unsafe {
         createCryptoContext();
 
-        let key_pair = generateKeys();
+        let key_pair = generateKeys(current_secret.as_ptr(), current_secret.len());
         
         let pub_key = if key_pair.public_key.ptr.is_null() || key_pair.public_key.len == 0 {
             Vec::new()

@@ -88,7 +88,7 @@ void createCryptoContext() {
     __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "Crypto context created");
 }
 
-KeyPair generateKeys() {
+KeyPair generateKeys(const uint8_t* secretPtr, size_t len) {
     __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "Generating keys");
 
     lbcrypto::PublicKey<lbcrypto::DCRTPoly> publicKey;
