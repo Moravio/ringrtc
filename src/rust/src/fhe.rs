@@ -76,6 +76,7 @@ pub fn encrypt(input: &[f32], public_key: &[u8]) -> Vec<u8> {
         let out = slice.to_vec();
 
         freeByteBuffer(buf.ptr);
+
         out
     }
 }
@@ -90,6 +91,7 @@ pub fn decrypt(data: &[u8], secret_key: &[u8]) -> Vec<f32> {
         let out = slice.to_vec();
         
         freeFloatBuffer(buf.ptr);
+        
         out
     }
 }

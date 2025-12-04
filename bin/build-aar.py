@@ -35,7 +35,7 @@ JAR_FILES = [
     'lib.java/sdk/android/libwebrtc.jar',
 ]
 WEBRTC_SO_LIBS = ['libringrtc_rffi.so']
-SO_LIBS = WEBRTC_SO_LIBS + ['libringrtc.so']
+SO_LIBS = WEBRTC_SO_LIBS + ['libringrtc.so', 'libringrtc_fhe.so']
 FHE_LIBS = [
     'libc++_shared.so',
     'libomp.so',
@@ -458,10 +458,6 @@ def CreateLibs(dry_run, project_dir, webrtc_src_dir, build_dir, archs, output,
                 if os.path.exists(src):
                     logging.debug('  Adding FHE lib: {} to {}...'.format(lib, target_dir))
                     shutil.copyfile(src, os.path.join(target_dir, lib))
-            shutil.copyfile(
-                os.path.join(build_dir, 'fhe', 'release', 'lib', 'libringrtc_fhe.so'),
-                os.path.join(target_dir, 'libringrtc_fhe.so')
-            )
 
 
 def CollectAarAssets(dry_run, project_dir, build_dir):

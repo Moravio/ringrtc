@@ -128,20 +128,28 @@ fn main() {
             _ => panic!("Unsupported Android architecture: {}", target_arch),
         };
 
+        let build_folder = match target_arch.as_str() {
+            "aarch64" => "android-arm64",
+            "arm" => "android-arm",
+            "x86" => "android-x86",
+            "x86_64" => "android-x64",
+            _ => panic!("Unsupported Android architecture: {}", target_arch),
+        };
+
         let ndk = std::env::var("ANDROID_NDK_HOME")
             .expect("ANDROID_NDK_HOME must be set for Android builds");
 
-        let fhe_out_dir = format!("{}/fhe/{}", out_dir, build_type);
+        let fhe_install_dir = format!("{}/{}/{}/lib.unstripped", default_output_dir(), build_folder, build_type);
 
-        let dst = cmake::Config::new(&fhe_dir)
+        cmake::Config::new(fhe_dir)
+            .define("CMAKE_INSTALL_PREFIX", &fhe_install_dir)
             .define("CMAKE_TOOLCHAIN_FILE", format!("{}/build/cmake/android.toolchain.cmake", ndk))
-            .define("ANDROID_NDK", &ndk)
+            .define("ANDROID_NDK", ndk)
             .define("ANDROID_ABI", android_abi)
             .define("ANDROID_PLATFORM", "android-21")
-            .out_dir(&fhe_out_dir)
             .build();
 
-        println!("cargo:rustc-link-search=native={}/lib", dst.display());
+        println!("cargo:rustc-link-search=native={}", fhe_install_dir);
         println!("cargo:rustc-link-lib=ringrtc_fhe");
 
         // Rely on the compile invocation to provide the right search path for ringrtc_rffi.
