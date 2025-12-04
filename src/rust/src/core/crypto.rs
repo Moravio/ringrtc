@@ -13,6 +13,11 @@ use rand::{CryptoRng, Rng};
 use sha2::Sha256;
 use subtle::ConstantTimeEq;
 use thiserror::Error;
+use crate::fhe::{
+    ffi::generate_keys as generate_fhe_keys,
+    ffi::encrypt as _encrypt_fhe,
+    ffi::decrypt as _decrypt_fhe,
+};
 
 #[derive(Error, Debug, Eq, PartialEq)]
 pub enum Error {
@@ -50,8 +55,10 @@ pub fn random_secret<R: Rng + CryptoRng + ?Sized>(rng: &mut R) -> Secret {
     secret
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+#[derive(Clone, Eq, PartialEq, Debug)]
 struct SenderState {
+    current_fhe_pub_key: Vec<u8>,
+    current_fhe_priv_key: Vec<u8>,
     current_aes_key: AesKey,
     current_hmac_key: HmacKey,
     current_secret: Secret,
@@ -60,7 +67,11 @@ struct SenderState {
 
 impl SenderState {
     fn new(ratchet_counter: RatchetCounter, secret: Secret) -> Self {
+        let (pub_key, priv_key) = generate_fhe_keys();
+
         let mut result = Self {
+            current_fhe_pub_key: pub_key,
+            current_fhe_priv_key: priv_key,
             current_aes_key: [0u8; size_of::<AesKey>()],
             current_hmac_key: [0u8; size_of::<HmacKey>()],
             current_secret: secret,
@@ -111,7 +122,7 @@ impl SenderState {
     }
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+#[derive(Clone, Eq, PartialEq, Debug)]
 struct ReceiverState {
     sender_state: SenderState,
     ratchet_frame: FrameCounter,
@@ -404,6 +415,18 @@ impl Context {
         self.decryption_error_tracker
             .increment_decryption_error(sender_id);
         Err(Error::NoMatchingReceiverState)
+    }
+
+    pub fn encrypt_fhe(&self, data: Vec<f32>) -> Result<Vec<u8>, Error> {
+        let result = _encrypt_fhe(&data, &self.sender_state.current_fhe_pub_key);
+
+        Ok(result)
+    }
+
+    pub fn decrypt_fhe(&self, data: Vec<u8>) -> Result<Vec<f32>, Error> {
+        let result = _decrypt_fhe(&data, &self.sender_state.current_fhe_priv_key);
+
+        Ok(result)
     }
 
     pub fn send_state(&self) -> (RatchetCounter, Secret) {

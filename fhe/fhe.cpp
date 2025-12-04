@@ -23,8 +23,6 @@
 #define LOG_TAG "FHERustNativeModule"
 
 static lbcrypto::CryptoContext<lbcrypto::DCRTPoly> cryptoContext = nullptr;
-static lbcrypto::PrivateKey<lbcrypto::DCRTPoly> secretKey;
-static lbcrypto::PublicKey<lbcrypto::DCRTPoly> publicKey;
 
 std::vector<float> convertToFloat(const std::vector<double>& doubleVec) {
     std::vector<float> floatVec;
@@ -54,8 +52,17 @@ struct FloatBuffer {
     size_t len;
 };
 
+struct KeyPair {
+    ByteBuffer publicKey;
+    ByteBuffer secretKey;
+};
+
 void createCryptoContext() {
-    __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "initialize new crypto context and keys");
+    if (cryptoContext) {
+        return;
+    }
+
+    __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "Initializing crypto context");
 
     cryptoContext->ClearEvalMultKeys();
     cryptoContext->ClearEvalAutomorphismKeys();
@@ -78,14 +85,20 @@ void createCryptoContext() {
     cryptoContext->Enable(lbcrypto::KEYSWITCH);
     cryptoContext->Enable(lbcrypto::LEVELEDSHE);
 
+    __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "Crypto context created");
+}
+
+KeyPair generateKeys() {
+    __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "Generating keys");
+
+    lbcrypto::PublicKey<lbcrypto::DCRTPoly> publicKey;
+    lbcrypto::PrivateKey<lbcrypto::DCRTPoly> secretKey;
+
     // lbcrypto::KeyPair<lbcrypto::DCRTPoly> kp = cryptoContext->KeyGen();
     // publicKey = kp.publicKey;
     // secretKey = kp.secretKey;
 
-    // std::string cryptoContextStr(reinterpret_cast<const char*>(crypto_context_bin), crypto_context_bin_len);
-    // std::istringstream cryptoContextIss(cryptoContextStr);
-    // lbcrypto::Serial::Deserialize(cryptoContext, cryptoContextIss, lbcrypto::SerType::BINARY);
-
+    // using static keys for now can we swapped with generation by uncommenting the code above
     std::string pubKeyStr(reinterpret_cast<const char*>(key_pub_bin), key_pub_bin_len);
     std::istringstream pubKeyIss(pubKeyStr);
     lbcrypto::Serial::Deserialize(publicKey, pubKeyIss, lbcrypto::SerType::BINARY);
@@ -94,13 +107,34 @@ void createCryptoContext() {
     std::istringstream privKeyIss(privKeyStr);
     lbcrypto::Serial::Deserialize(secretKey, privKeyIss, lbcrypto::SerType::BINARY);
 
-    __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "Keys loaded");
+    KeyPair keys;
+
+    std::ostringstream pubOss;
+    lbcrypto::Serial::Serialize(publicKey, pubOss, lbcrypto::SerType::BINARY);
+    std::string pubStr = pubOss.str();
+    keys.publicKey.len = pubStr.size();
+    keys.publicKey.ptr = static_cast<uint8_t*>(std::malloc(keys.publicKey.len));
+    std::memcpy(keys.publicKey.ptr, pubStr.data(), keys.publicKey.len);
+
+    std::ostringstream privOss;
+    lbcrypto::Serial::Serialize(secretKey, privOss, lbcrypto::SerType::BINARY);
+    std::string privStr = privOss.str();
+    keys.secretKey.len = privStr.size();
+    keys.secretKey.ptr = static_cast<uint8_t*>(std::malloc(keys.secretKey.len));
+    std::memcpy(keys.secretKey.ptr, privStr.data(), keys.secretKey.len);
+
+    __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "Keys generated");
+
+    return keys;
 }
 
-ByteBuffer encrypt(const float* inputData, size_t len) {
-    __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "encrypting data of size %zu", len);
-
+ByteBuffer encrypt(const float* inputData, size_t len, const uint8_t* pubKeyPtr, size_t pubKeyLen) {
     try {
+        lbcrypto::PublicKey<lbcrypto::DCRTPoly> publicKey;
+        std::string pubKeyStr(reinterpret_cast<const char*>(pubKeyPtr), pubKeyLen);
+        std::istringstream pubKeyIss(pubKeyStr);
+        lbcrypto::Serial::Deserialize(publicKey, pubKeyIss, lbcrypto::SerType::BINARY);
+
         std::vector<float> inputVec(inputData, inputData + len);
         
         lbcrypto::Plaintext plaintext = cryptoContext->MakeCKKSPackedPlaintext(convertToDouble(inputVec));
@@ -128,37 +162,54 @@ ByteBuffer encrypt(const float* inputData, size_t len) {
     }
 }
 
-FloatBuffer decrypt(const uint8_t* encryptedData, size_t len) {
-    std::string s(reinterpret_cast<const char*>(encryptedData), len);
-    std::istringstream iss(s);
+FloatBuffer decrypt(const uint8_t* encryptedData, size_t len, const uint8_t* privKeyPtr, size_t privKeyLen) {
+    try {
+        lbcrypto::PrivateKey<lbcrypto::DCRTPoly> secretKey;
+        std::string privKeyStr(reinterpret_cast<const char*>(privKeyPtr), privKeyLen);
+        std::istringstream privKeyIss(privKeyStr);
+        lbcrypto::Serial::Deserialize(secretKey, privKeyIss, lbcrypto::SerType::BINARY);
 
-    lbcrypto::Ciphertext<lbcrypto::DCRTPoly> ciphertext;
-    lbcrypto::Serial::Deserialize(ciphertext, iss, lbcrypto::SerType::BINARY);
+        std::string s(reinterpret_cast<const char*>(encryptedData), len);
+        std::istringstream iss(s);
 
-    lbcrypto::Plaintext plaintext;
-    cryptoContext->Decrypt(secretKey, ciphertext, &plaintext);
+        lbcrypto::Ciphertext<lbcrypto::DCRTPoly> ciphertext;
+        lbcrypto::Serial::Deserialize(ciphertext, iss, lbcrypto::SerType::BINARY);
 
-    plaintext->SetLength(plaintext->GetLength());
-    std::vector<double> decoded = plaintext->GetRealPackedValue();
-    std::vector<float> output = convertToFloat(decoded);
+        lbcrypto::Plaintext plaintext;
+        cryptoContext->Decrypt(secretKey, ciphertext, &plaintext);
 
-    FloatBuffer out;
-    out.len = output.size();
-    out.ptr = static_cast<float*>(std::malloc(out.len * sizeof(float)));
-    if (!out.ptr) {
-        out.len = 0;
+        plaintext->SetLength(plaintext->GetLength());
+        std::vector<double> decoded = plaintext->GetRealPackedValue();
+        std::vector<float> output = convertToFloat(decoded);
+
+        FloatBuffer out;
+        out.len = output.size();
+        out.ptr = static_cast<float*>(std::malloc(out.len * sizeof(float)));
+        if (!out.ptr) {
+            out.len = 0;
+            return out;
+        }
+        std::memcpy(out.ptr, output.data(), out.len * sizeof(float));
+
         return out;
+    } catch (const std::exception& e) {
+        __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, "Exception during decryption: %s", e.what());
+        
+        throw;
     }
-    std::memcpy(out.ptr, output.data(), out.len * sizeof(float));
-    return out;
 }
 
-void freeByteBuffer(uint8_t* ptr, size_t) {
+void freeByteBuffer(uint8_t* ptr) {
     std::free(ptr);
 }
 
-void freeFloatBuffer(float* ptr, size_t) {
+void freeFloatBuffer(float* ptr) {
     std::free(ptr);
+}
+
+void freeKeyPair(KeyPair keys) {
+    std::free(keys.publicKey.ptr);
+    std::free(keys.secretKey.ptr);
 }
 
 }

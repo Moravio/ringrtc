@@ -73,11 +73,7 @@ use crate::{
             SessionDescription, SrtpCryptoSuite, SrtpKey, create_csd_observer, create_ssd_observer,
         },
         stats_observer::{StatsObserver, create_stats_observer},
-    },
-    fhe::{
-        ffi::create_crypto_context,
-        ffi::encrypt,
-    },
+    }
 };
 
 // Each instance of a group_call::Client has an ID for logging and passing events
@@ -1470,12 +1466,25 @@ impl Client {
     }
 
     pub fn encrypt_fhe(&self, pcm_data: Vec<f32>) -> Result<Vec<u8>> {
-        info!("encrypting data of size {}", pcm_data.len());
-        create_crypto_context();
-        // eprintln!("result = {}", result);
+        let frame_crypto_context = self
+            .frame_crypto_context
+            .lock()
+            .expect("Get e2ee context to encrypt media");
 
-        let result = encrypt(&pcm_data);
-        Ok(result)
+        let result = frame_crypto_context.encrypt_fhe(pcm_data);
+
+        Ok(result.unwrap())
+    }
+
+    pub fn decrypt_fhe(&self, encrypted_data: Vec<u8>) -> Result<Vec<f32>> {
+        let frame_crypto_context = self
+            .frame_crypto_context
+            .lock()
+            .expect("Get e2ee context to decrypt media");
+
+        let result = frame_crypto_context.decrypt_fhe(encrypted_data);
+
+        Ok(result.unwrap())
     }
 
     // Pulled into a named private method so we can call it recursively.

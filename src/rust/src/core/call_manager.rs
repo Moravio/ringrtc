@@ -3263,6 +3263,21 @@ where
             Err(anyhow::anyhow!("Group Client not found for id: {}", client_id))
         }
     }
+
+    pub fn decrypt_fhe(
+        &mut self,
+        client_id: group_call::ClientId,
+        encrypted_data: Vec<u8>,
+    ) -> Result<Vec<f32>> {
+        info!("decrypt_fhe(): id: {}", client_id);
+
+        let group_call_map = self.group_call_by_client_id.lock()?;
+        if let Some(group_call) = group_call_map.get(&client_id) {
+            group_call.client.decrypt_fhe(encrypted_data)
+        } else {
+            Err(anyhow::anyhow!("Group Client not found for id: {}", client_id))
+        }
+    }
 }
 
 #[cfg(test)]

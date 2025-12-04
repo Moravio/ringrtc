@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.22.1)
-project("FHE_Rust")
+project("ringrtc_fhe")
 
 set(CMAKE_CXX_STANDARD 17)
 
 add_library(${CMAKE_PROJECT_NAME} SHARED
-    fhe_rust.cpp
+    fhe.cpp
 )
 
 set(OPENFHE_LIBS_DIR "${CMAKE_SOURCE_DIR}/lib/${ANDROID_ABI}")

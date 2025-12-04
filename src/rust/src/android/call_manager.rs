@@ -1258,6 +1258,25 @@ pub fn encrypt_fhe<'a>(
     env.byte_array_from_slice(&result).map_err(Into::into)
 }
 
+pub fn decrypt_fhe<'a>(
+    env: &mut JNIEnv<'a>,
+    call_manager: *mut AndroidCallManager,
+    client_id: group_call::ClientId,
+    encrypted_data: jni::sys::jbyteArray,
+) -> Result<jni::sys::jfloatArray> {
+    let call_manager = unsafe { ptr_as_mut(call_manager)? };
+
+    let encrypted_data_array = unsafe { jni::objects::JByteArray::from_raw(encrypted_data) };
+    let bytes = env.convert_byte_array(encrypted_data_array)?;
+    
+    let result = call_manager.decrypt_fhe(client_id, bytes)?;
+    
+    let output = env.new_float_array(result.len() as i32)?;
+    env.set_float_array_region(&output, 0, &result)?;
+    
+    Ok(output.into_raw())
+}
+
 fn jint_to_restrictions(raw_restrictions: jint) -> Option<CallLinkRestrictions> {
     match raw_restrictions {
         0 => Some(CallLinkRestrictions::None),

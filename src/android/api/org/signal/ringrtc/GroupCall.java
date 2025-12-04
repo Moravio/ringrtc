@@ -692,6 +692,19 @@ public final class GroupCall {
 
     /**
      *
+     * Decrypts the provided byte array using FHE and returns the float array.
+     *
+     * @param encryptedData  The byte array (encrypted data) to decrypt
+     * @return               The decrypted float array (PCM data)
+     * @throws CallException for native code failures
+     */
+    public float[] decryptFhe(@NonNull byte[] encryptedData) throws CallException {
+        Log.i(TAG, "decryptFhe():");
+        return ringrtcDecryptFhe(nativeCallManager, this.clientId, encryptedData);
+    }
+
+    /**
+     *
      * Callback from RingRTC when the group call object needs an updated
      * membership proof. Called via the CallManager.
      *
@@ -1523,5 +1536,11 @@ public final class GroupCall {
         byte[] ringrtcEncryptFhe(long nativeCallManager,
                                  long clientId,
                                  float[] pcmData)
+        throws CallException;
+
+    private native
+        float[] ringrtcDecryptFhe(long nativeCallManager,
+                                  long clientId,
+                                  byte[] encryptedData)
         throws CallException;
 }

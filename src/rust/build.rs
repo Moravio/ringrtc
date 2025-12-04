@@ -142,7 +142,7 @@ fn main() {
             .build();
 
         println!("cargo:rustc-link-search=native={}/lib", dst.display());
-        println!("cargo:rustc-link-lib=FHE_Rust");
+        println!("cargo:rustc-link-lib=ringrtc_fhe");
 
         // Rely on the compile invocation to provide the right search path for ringrtc_rffi.
         println!("cargo:rustc-link-lib=ringrtc_rffi");
