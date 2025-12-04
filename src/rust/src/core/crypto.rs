@@ -14,9 +14,9 @@ use sha2::Sha256;
 use subtle::ConstantTimeEq;
 use thiserror::Error;
 use crate::fhe::{
-    ffi::generate_keys as generate_fhe_keys,
-    ffi::encrypt as _encrypt_fhe,
-    ffi::decrypt as _decrypt_fhe,
+    generate_keys as generate_fhe_keys,
+    encrypt as _encrypt_fhe,
+    decrypt as _decrypt_fhe,
 };
 
 #[derive(Error, Debug, Eq, PartialEq)]

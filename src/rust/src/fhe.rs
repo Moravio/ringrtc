@@ -37,8 +37,8 @@ unsafe extern "C" {
         secret_key_len: usize
     ) -> FloatBuffer;
     
-    fn freeByteBuffer(ptr: *mut u8, len: usize);
-    fn freeFloatBuffer(ptr: *mut f32, len: usize);
+    fn freeByteBuffer(ptr: *mut u8);
+    fn freeFloatBuffer(ptr: *mut f32);
     fn freeKeyPair(keys: KeyPair);
 }
 
@@ -75,7 +75,7 @@ pub fn encrypt(input: &[f32], public_key: &[u8]) -> Vec<u8> {
         let slice = std::slice::from_raw_parts(buf.ptr, buf.len);
         let out = slice.to_vec();
 
-        freeByteBuffer(buf.ptr, buf.len);
+        freeByteBuffer(buf.ptr);
         out
     }
 }
@@ -89,7 +89,7 @@ pub fn decrypt(data: &[u8], secret_key: &[u8]) -> Vec<f32> {
         let slice = std::slice::from_raw_parts(buf.ptr, buf.len);
         let out = slice.to_vec();
         
-        freeFloatBuffer(buf.ptr, buf.len);
+        freeFloatBuffer(buf.ptr);
         out
     }
 }
